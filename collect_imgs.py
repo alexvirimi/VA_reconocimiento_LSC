@@ -7,7 +7,7 @@ DATA_PATH = './data'
 if not os.path.exists(DATA_PATH):
     os.makedirs(DATA_PATH)
 
-alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'i', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 't', 'u', 'v', 'w', 'x', 'y']
 # Number of images to collect per class
 dataset_size = 100
 
@@ -20,7 +20,7 @@ for letter in alphabet:
     if not os.path.exists(letter_dir):
         os.makedirs(letter_dir)
 
-    # Contar cuántas imágenes ya existen para esta letra
+    # Count how many images already exist for this letter
     existing_imgs = len([img for img in os.listdir(letter_dir) if img.endswith('.jpg')])
     if existing_imgs >= dataset_size:
         print(f'Se han recolectado suficientes imágenes para la letra {letter}. Saltando...')
