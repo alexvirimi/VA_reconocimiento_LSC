@@ -1,136 +1,203 @@
 import cv2
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, scrolledtext
 from PIL import Image, ImageTk
 
+# Clase principal de la aplicación
 class SignLanguageApp:
     def __init__(self, window):
+        # Configuración inicial de la ventana principal
         self.window = window
-        self.window.title("Interprete de Lenguaje de Señas")
-        self.window.geometry("640x480")
-        self.cap = None  # Variable para la cámara, se inicializa cuando se empieza a interpretar
+        self.window.title("Intérprete de Lenguaje de Señas")
+        self.window.geometry("900x600")      # Tamaño de la ventana
+        self.window.configure(bg="#f2f4f7")  # Color de fondo
 
-        self.frame = None  # Frame actual capturado de la cámara
+        # Variables para la cámara y el modo de interpretación
+        self.cap = None
+        self.frame = None
+        self.mode = None
 
-        # Iniciar con la pantalla de bienvenida
+        # Pantalla inicial de bienvenida
         self.create_welcome_screen()
 
+    # -----------------------------------------------------------
+    # Función auxiliar: limpia todos los widgets de la ventana
+    # -----------------------------------------------------------
+    def clear_window(self):
+        for widget in self.window.winfo_children():
+            widget.destroy()
+
+    # -----------------------------------------------------------
+    # Pantalla 1: Bienvenida
+    # -----------------------------------------------------------
     def create_welcome_screen(self):
-        """Crea la pantalla de bienvenida con un mensaje y botón para continuar."""
         self.clear_window()
 
-        welcome_label = tk.Label(self.window, text="¡Bienvenido al intérprete de lenguaje de señas!", font=("Arial", 16))
-        welcome_label.pack(pady=40)
+        # Contenedor principal de esta pantalla
+        frame = tk.Frame(self.window, bg="#f2f4f7")
+        frame.pack(expand=True)
 
-        start_button = tk.Button(self.window, text="Continuar", command=self.create_main_menu, width=20, height=2)
-        start_button.pack()
+        # Texto principal
+        tk.Label(frame, text="¡Bienvenido al intérprete de lenguaje de señas!",
+                 font=("Segoe UI", 18, "bold"), bg="#f2f4f7", fg="#2b3a55").pack(pady=40)
 
+        # Botón para pasar al menú principal
+        tk.Button(frame, text="Continuar", command=self.create_main_menu,
+                  width=20, height=2, bg="#4a90e2", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=10)
+
+    # -----------------------------------------------------------
+    # Pantalla 2: Menú principal
+    # -----------------------------------------------------------
     def create_main_menu(self):
-        """Crea el menú principal con opciones para empezar a interpretar o salir."""
         self.clear_window()
 
-        menu_label = tk.Label(self.window, text="Menú principal", font=("Arial", 16))
-        menu_label.pack(pady=20)
+        frame = tk.Frame(self.window, bg="#f2f4f7")
+        frame.pack(expand=True)
 
-        start_interpret_button = tk.Button(self.window, text="Empezar a interpretar", command=self.create_interpret_options, width=25, height=2)
-        start_interpret_button.pack(pady=10)
+        # Título del menú
+        tk.Label(frame, text="Menú principal", font=("Segoe UI", 18, "bold"),
+                 bg="#f2f4f7", fg="#2b3a55").pack(pady=20)
 
-        quit_button = tk.Button(self.window, text="Salir", command=self.quit, width=25, height=2)
-        quit_button.pack(pady=10)
+        # Botón para ir al modo de interpretación
+        tk.Button(frame, text="Empezar a interpretar", command=self.create_interpret_options,
+                  width=25, height=2, bg="#4a90e2", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=10)
 
+        # Botón para salir del programa
+        tk.Button(frame, text="Salir", command=self.quit,
+                  width=25, height=2, bg="#d9534f", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=10)
+
+    # -----------------------------------------------------------
+    # Pantalla 3: Opciones de interpretación
+    # -----------------------------------------------------------
     def create_interpret_options(self):
-        """Pantalla para elegir el modo de interpretación: letra por letra o por palabras."""
         self.clear_window()
 
-        option_label = tk.Label(self.window, text="¿Cómo quieres interpretar?", font=("Arial", 16))
-        option_label.pack(pady=20)
+        frame = tk.Frame(self.window, bg="#f2f4f7")
+        frame.pack(expand=True)
 
-        # Botón para interpretar letra por letra
-        letter_button = tk.Button(self.window, text="por letras", command=lambda: self.start_interpretation("letra"), width=20, height=2)
-        letter_button.pack(pady=10)
+        # Título
+        tk.Label(frame, text="¿Cómo quieres interpretar?", font=("Segoe UI", 18, "bold"),
+                 bg="#f2f4f7", fg="#2b3a55").pack(pady=20)
 
-        # Botón para interpretar por palabras (aún no disponible)
-        word_button = tk.Button(self.window, text="Por palabras", command=self.word_not_available, width=20, height=2)
-        word_button.pack(pady=10)
+        # Botón: interpretar por letras
+        tk.Button(frame, text="Por letras", command=lambda: self.start_interpretation("letra"),
+                  width=20, height=2, bg="#4a90e2", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=10)
+
+        # Botón: interpretar por palabras (aún no implementado)
+        tk.Button(frame, text="Por palabras", command=self.word_not_available,
+                  width=20, height=2, bg="#999999", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=10)
 
         # Botón para volver al menú principal
-        back_button = tk.Button(self.window, text="Volver", command=self.create_main_menu, width=20, height=2)
-        back_button.pack(pady=20)
+        tk.Button(frame, text="Volver", command=self.create_main_menu,
+                  width=20, height=2, bg="#d9534f", fg="white",
+                  font=("Segoe UI", 12, "bold"), relief="flat").pack(pady=20)
 
+    # -----------------------------------------------------------
+    # Muestra mensaje de opción no disponible
+    # -----------------------------------------------------------
     def word_not_available(self):
-        """Muestra un mensaje indicando que la opción por palabras no está disponible y regresa al menú de opciones."""
         messagebox.showinfo("Información", "No disponible de momento")
-        self.create_interpret_options()
 
+    # -----------------------------------------------------------
+    # Pantalla 4: Modo de interpretación (cámara + texto)
+    # -----------------------------------------------------------
     def start_interpretation(self, mode):
-        """
-        Inicia la interpretación según el modo seleccionado.
-        Muestra la cámara y un botón para salir.
-        """
         self.clear_window()
         self.mode = mode
 
-        info_label = tk.Label(self.window, text=f"Interpretando {mode}...\nPresiona 'Salir' para detener.", font=("Arial", 14))
-        info_label.pack(pady=10)
+        # Etiqueta superior
+        top_label = tk.Label(self.window, text=f"Interpretando por {mode}s...",
+                             font=("Segoe UI", 16, "bold"), bg="#f2f4f7", fg="#2b3a55")
+        top_label.pack(pady=10)
 
-        # Label donde se mostrará el video de la cámara
-        self.video_label = tk.Label(self.window)
-        self.video_label.pack()
+        # Contenedor principal (dividido en cámara y texto)
+        container = tk.Frame(self.window, bg="#f2f4f7")
+        container.pack(expand=True, fill="both", padx=20, pady=10)
 
-        # Botón para detener la interpretación y volver al menú
-        quit_button = tk.Button(self.window, text="Salir", command=self.stop_interpretation, width=20, height=2)
+        # ---------- Sección izquierda: cámara ----------
+        left_frame = tk.Frame(container, bg="#dce3ed", width=500, height=400)
+        left_frame.pack(side="left", padx=10, pady=10)
+        left_frame.pack_propagate(False)  # Fijar tamaño
+
+        # Etiqueta donde se mostrará el video
+        self.video_label = tk.Label(left_frame, bg="#dce3ed")
+        self.video_label.pack(expand=True)
+
+        # ---------- Sección derecha: texto traducido ----------
+        right_frame = tk.Frame(container, bg="#ffffff", width=300, height=400, relief="groove", bd=2)
+        right_frame.pack(side="right", padx=10, pady=10)
+        right_frame.pack_propagate(False)
+
+        # Título del área de texto
+        tk.Label(right_frame, text="Texto interpretado:", font=("Segoe UI", 12, "bold"), bg="#ffffff").pack(pady=5)
+
+        # Cuadro de texto con scroll
+        self.output_text = scrolledtext.ScrolledText(right_frame, wrap=tk.WORD, font=("Segoe UI", 11),
+                                                     height=20, width=30)
+        self.output_text.pack(padx=10, pady=10, fill="both", expand=True)
+        self.output_text.insert(tk.END, "Aquí aparecerá el texto traducido...\n")
+
+        # Botón para detener la interpretación
+        quit_button = tk.Button(self.window, text="Detener y volver al menú",
+                                command=self.stop_interpretation,
+                                bg="#d9534f", fg="white", font=("Segoe UI", 12, "bold"),
+                                relief="flat", width=25, height=2)
         quit_button.pack(pady=10)
 
-        # Abrir la cámara
+        # Inicializar la cámara
         self.cap = cv2.VideoCapture(0)
         self.update_video()
 
+    # -----------------------------------------------------------
+    # Actualiza la imagen de la cámara en la interfaz
+    # -----------------------------------------------------------
     def update_video(self):
-        """
-        Captura un frame de la cámara, lo procesa y lo muestra en la interfaz.
-        Aquí es donde se debe integrar la lógica de reconocimiento de letras.
-        """
-        ret, frame = self.cap.read()
-        if ret:
-            self.frame = frame
+        if self.cap:
+            ret, frame = self.cap.read()
+            if ret:
+                # Convertir de BGR (OpenCV) a RGB (para Tkinter)
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                img = Image.fromarray(frame_rgb)
+                imgtk = ImageTk.PhotoImage(image=img)
 
-            # Aquí va la lógica para interpretar por letras
-            # 
-            # 
-            #    
-            #      Mostrar resultado en la interfaz 
+                # Mostrar imagen en el label
+                self.video_label.imgtk = imgtk
+                self.video_label.configure(image=imgtk)
 
-            # Convertir la imagen de BGR (OpenCV) a RGB (PIL/Tkinter)
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(frame_rgb)
-            imgtk = ImageTk.PhotoImage(image=img)
+                #  Aquí se debe agregar la lógica del modelo de interpretación
+                
 
-            # Actualizar el label con la imagen capturada
-            self.video_label.imgtk = imgtk
-            self.video_label.configure(image=imgtk)
+            # Volver a ejecutar esta función cada 10 ms (bucle de video)
+            self.window.after(10, self.update_video)
 
-        # Llamar a esta función nuevamente después de 10 ms para actualizar el video
-        self.window.after(10, self.update_video)
-
+    # -----------------------------------------------------------
+    # Detiene la cámara y regresa al menú principal
+    # -----------------------------------------------------------
     def stop_interpretation(self):
-        """Detiene la cámara y regresa al menú principal."""
         if self.cap:
             self.cap.release()
             self.cap = None
         self.create_main_menu()
 
-    def clear_window(self):
-        """Elimina todos los widgets de la ventana para cambiar de pantalla."""
-        for widget in self.window.winfo_children():
-            widget.destroy()
-
+    # -----------------------------------------------------------
+    # Cierra completamente la aplicación
+    # -----------------------------------------------------------
     def quit(self):
-        """Libera la cámara y cierra la aplicación."""
         if self.cap:
             self.cap.release()
         self.window.destroy()
 
+
+# -----------------------------------------------------------
+# Ejecución principal del programa
+# -----------------------------------------------------------
 if __name__ == "__main__":
     root = tk.Tk()
     app = SignLanguageApp(root)
     root.mainloop()
+
