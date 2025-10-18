@@ -1,22 +1,17 @@
-#Hace lo mismo que los archivos que ya creamos, pero no los divide en csv ni nada de eso, falta que me expliquen bien 
-#para ver si lo reemplazamos o no
+#Este módulo procesa videos para extraer keypoints utilizando MediaPipe Holistic y guarda los datos en archivos .npy.
+#Este codigo funciona como reemplazo de collect_images.py para videos.
 
-
-
-import tensorflow as tf
-import cv2
-import mediapipe as mp
 import os
-from sklearn.model_selection import train_test_split
-from matplotlib import pyplot as plt
+import cv2
 import numpy as np
-import time
+import mediapipe as mp
 
-
+# --- Inicialización de MediaPipe ---
 mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils
-mp_face_mesh = mp.solutions.face_mesh
 
+
+# --- Función para detección ---
 def mediapipe_detection(image, model):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image.flags.writeable = False
@@ -25,110 +20,64 @@ def mediapipe_detection(image, model):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     return image, results
 
-def draw_landmarks(image, results):
-    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_face_mesh.FACEMESH_TESSELATION)
-    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-    mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
-def draw_styled_landmarks(image, results):
-
-    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_face_mesh.FACEMESH_TESSELATION,
-                             mp_drawing.DrawingSpec(color=(80,110,10), thickness=1, circle_radius=1),
-                             mp_drawing.DrawingSpec(color=(80,256,121), thickness=1, circle_radius=1)
-    )
-    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
-                             mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=4),
-                             mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
-                             )
-
-    mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-                             mp_drawing.DrawingSpec(color=(121,22,76), thickness=2, circle_radius=4),
-                             mp_drawing.DrawingSpec(color=(121,44,250), thickness=2, circle_radius=2)
-                             )
-
-    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-                             mp_drawing.DrawingSpec(color=(80,110,10), thickness=2, circle_radius=4),
-                             mp_drawing.DrawingSpec(color=(80,256,121), thickness=2, circle_radius=2)
-                             )
+# --- Función para extraer keypoints ---
+def extract_keypoints(results):
+    pose = np.array([[res.x, res.y, res.z, res.visibility] 
+                     for res in results.pose_landmarks.landmark]).flatten() if results.pose_landmarks else np.zeros(33*4)
+    face = np.array([[res.x, res.y, res.z] 
+                     for res in results.face_landmarks.landmark]).flatten() if results.face_landmarks else np.zeros(468*3)
+    lh = np.array([[res.x, res.y, res.z] 
+                   for res in results.left_hand_landmarks.landmark]).flatten() if results.left_hand_landmarks else np.zeros(21*3)
+    rh = np.array([[res.x, res.y, res.z] 
+                   for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)
+    return np.concatenate([pose, face, lh, rh])
 
 
-def main():
-    DATA_VIDEO_PATH = './static/videos'
+#  Parámetros principales 
+VIDEO_PATH = os.path.join('static', 'videos', 'abecedario')
+DATA_PATH = os.path.join('MP_Data')
 
-    abcdario = np.array(['a', 'b', 'c', 'd', 'e', 'f', 'g',
-                         'h', 'i', 'j', 'k', 'l', 'elle', 'm', 
-                         'n', 'enie', 'o', 'p', 'q', 'r', 's', 
-                         't', 'u', 'v', 'y', 'z'])
-    
-    # Thirty videos worth of data
-    no_sequences = 30
+# Lista de acciones según los videos
+actions = np.array(['a', 'b', 'c', 'd', 'e'])
+no_sequences = 30        # número máximo de secuencias por acción
+sequence_length = 30     # frames por video
+start_folder = 0
 
-    # Videos are going to be 30 frames in length
-    sequence_length = 30
 
-    # Folder start
-    start_folder = 30
-    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+#  Crear estructura de carpetas 
+for action in actions:
+    for sequence in range(start_folder, start_folder + no_sequences):
+        os.makedirs(os.path.join(DATA_PATH, action, str(sequence)), exist_ok=True)
 
-        for letter in abcdario:
-            
-            letter_dir = os.path.join(DATA_VIDEO_PATH, 'abecedario', letter + '.mp4')
-            print(letter_dir)
-            if not os.path.exists(letter_dir):
-                print('not exist')
-                continue
 
-            cap = cv2.VideoCapture(letter_dir)
-            image_array = []
-            stop_sequence = False
+#  Procesamiento de videos 
+with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+    for action in actions:
+        video_files = [f for f in os.listdir(VIDEO_PATH) if f.startswith(action)]
+        for sequence, video_file in enumerate(video_files):
+            if sequence >= no_sequences:
+                break
 
-            for sequence in range(start_folder, start_folder+no_sequences):
-                
-                if stop_sequence: break
+            video_path = os.path.join(VIDEO_PATH, video_file)
+            cap = cv2.VideoCapture(video_path)
+            frame_num = 0
 
-                for frame_num in range(sequence_length):
-                    # Read feed
-                    ret, frame = cap.read()
-                    image_array.append(frame)
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret or frame_num >= sequence_length:
+                    break
 
-                    if ret == True:
-                        # Make detections
-                        image, results = mediapipe_detection(frame, holistic)
-                        # print(results)
-                        
-                        # Draw landmarks
-                        draw_styled_landmarks(image, results)
-                    else:
-                        print(f'Letter {letter} has {sequence - no_sequences} sequences')
-                        print(f'Last sequence had {frame_num + 1} frames')
-                        stop_sequence = True
-                        break
+                # Detección y extracción de keypoints
+                image, results = mediapipe_detection(frame, holistic)
+                keypoints = extract_keypoints(results)
 
-                    # Show to screen
-                    if frame_num == 0:
-                        cv2.putText(image, 'STARTING COLLECTION', (120,200), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255, 0), 4, cv2.LINE_AA)
-                        cv2.putText(image, 'Collecting frames for {} Video Number {}'.format(letter, sequence), (15,12), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-                        # Show to screen
-                        cv2.imshow('OpenCV Feed', image)
-                        cv2.waitKey(500)
-                    else: 
-                        cv2.putText(image, 'Collecting frames for {} Video Number {}'.format(letter, sequence), (15,12), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-                        # Show to screen
-                        cv2.imshow('OpenCV Feed', image)
+                # Guardar en archivo .npy
+                np.save(os.path.join(DATA_PATH, action, str(sequence), str(frame_num)), keypoints)
 
-                    # NO USEN ESTO! NO LE DEN A A LA Q!
-                    # SIN ESTO NO SE MUESTRA EL VIDEO
-                    if cv2.waitKey(10) & 0xFF == ord('q'):
-                        break
-                
+                frame_num += 1
+
             cap.release()
-            cv2.destroyAllWindows()
-            print(f'Letter {letter} has {len(image_array)} frames')
 
-
-if __name__ == '__main__':
-    main()
+cv2.destroyAllWindows()
+print("Extracción completada. Keypoints guardados en MP_Data/")
