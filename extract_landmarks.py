@@ -10,7 +10,7 @@ import numpy as np
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(static_image_mode=True, max_num_hands=1, min_detection_confidence=0.5)
 
-input_path = "processed_data"
+input_path = "data/processed_data"
 output_csv = "landmarks.csv"
 
 labels = [d for d in os.listdir(input_path) if os.path.isdir(os.path.join(input_path, d))]

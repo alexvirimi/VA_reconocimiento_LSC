@@ -10,7 +10,7 @@ import numpy as np
 from tqdm import tqdm  # Barra de progreso visual
 
 input_path = "data"
-output_path = "processed_data"
+output_path = "data/processed_data"
 img_size = (224, 224)  # Tamaño estándar para los modelos de visión
 
 os.makedirs(output_path, exist_ok=True)  # Crea la carpeta de salida si no existe
