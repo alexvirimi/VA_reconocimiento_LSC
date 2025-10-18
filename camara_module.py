@@ -1,3 +1,8 @@
+#Hace lo mismo que los archivos que ya creamos, pero no los divide en csv ni nada de eso, falta que me expliquen bien 
+#para ver si lo reemplazamos o no
+
+
+
 import tensorflow as tf
 import cv2
 import mediapipe as mp
